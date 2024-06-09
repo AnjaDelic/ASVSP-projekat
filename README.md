@@ -62,7 +62,7 @@ Tipovi obeležja koji se pojavljuju u bazi su: String (20), Integer (15),  DateT
 - BEAT_OF_OCCURRENCE - bit, deo grada namenjen  za 1 policijsku patrolu, u kojem se dogodila nesreća
 - PHOTOS_TAKEN_I, STATEMENTS_TAKEN_I - obeležja koja se odnose na to da li je policijski službenik izvršio svoje dužnosti
 
-##Upiti
+### Upiti
 1. Izlistati 15 bitova u kojima je toga dana bilo najviše nezgoda, sortirati ih u opadajućem redosledu zabeleženih nezgoda i prikazati koji je to udeo od ukupnog zabeleženog broja nezgoda toga dana.
 2. U zavisnosti od glavnog uzroka nezgode, izlistati ukupan broj fatalnih i nefatalnih nezgoda sortiranih po ukupnoj šteti za taj uzrok opadajuće.
 3. Za krug 3 kilometra od centra, izlistati 3 tipa nesreća koji su se najviše puta dogodili toga dana i sortirati ih prema rastućem broju uočenih zločina. 
