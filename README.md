@@ -31,11 +31,11 @@ Tipovi obeležja koji se pojavljuju u bazi su: String (16), Decimal (10),  DateT
 3. Prikazati državu sa najviše nezgoda koje su imale značajan uticaj na okolinu, a desile su se tokom dana i kada je brzina vetra bila veća od prosečne. 
 4. Izlistati nezgode koje su se dogodile u blizini saobraćajnih znakova, imale su uticaj stepena 2 na saobraćaj i desile su se tokom noći i slabe vidljivosti.
 5. Izlistati nezgode čija je pojava izazvala kolonu od 5 do 7 milja, u blizini ima pešački prelaz i raskrsnicu i sortirati ih prema datumu opadajuće.
-6. Izlistati gradove u kojima je zabeležen broj nezgoda manji od prosečnog broja zabeleženih nesreća i u njima izračunati prosečnu temperaturu u stepenima celzijusa. Pored toga prikazati prosečnu temperaturu u stepenima celzijusa na celom skupu.
+6. Izlistati gradove u kojima je zabeležen broj nezgoda manji od prosečnog broja zabeleženih nesreća i u njima izračunati prosečnu temperaturu u stepenima celzijusa. 
 7. Prikazati 15 gradova koji imaju najveći broj nezgoda po uglavnom oblačnom vremenu i kada je zabeležena vlažnost veća od prosečne. 
 8. Za 2022. godinu prikazati, za svaki grad prosečan broj nezgoda po danima i satima. 
 9. Prikazati grad u kojem se najviše nezgoda dogodilo između 2017. i 2022. godine i koji je to udeo od ukupnog broja nezgoda, izraziti u procentima. 
-10. Izlistati 5 gradova u kojima je najmanje zabeleženih nezgoda blizu pešačkog prelaza i znaka stop. Za svaki od 5 gradova izlistati 3 najčešćih vremenskih uslova.
+10. Izlistati 5 gradova u kojima je najvise zabeleženih nezgoda blizu pešačkog prelaza i znaka stop. Za svaki od 5 gradova izlistati 3 najčešćih vremenskih uslova.
 11. Za grad Čikago prikazati prosečan broj nezgoda za svaki mesec.
 12. Za grad Čikago prikazati prosečan broj prosečan broj nezgoda po danima i satima.
 13. Za grad Čikago izlistati vremenske uslove i doba dana u kojima se najčešće dogadjaju nesreće.

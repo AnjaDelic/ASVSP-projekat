@@ -60,4 +60,4 @@ crosswalk_intersection_accidents.write.format("com.mongodb.spark.sql.DefaultSour
     .option("collection", "crosswalk_intersection_accidents") \
     .save()
 
-spark.stop()
+
