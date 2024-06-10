@@ -1,8 +1,6 @@
-#Za 2022. godinu prikazati, za svaki grad prosečan broj nezgoda po danima i satima. 
-
 import os
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, avg, count, lit, year, dayofweek, hour
+from pyspark.sql.functions import col, avg, count, year, dayofweek, hour
 from pyspark.sql.window import Window
 from pyspark.sql.types import *
 
@@ -30,25 +28,26 @@ quiet_logs(spark)
 # Define HDFS namenode
 HDFS_NAMENODE = os.environ["CORE_CONF_fs_defaultFS"]
 
-# Read the JSON file
-df = spark.read.json(HDFS_NAMENODE + "/data/US_Accidents_March23_cleaned.json")
+# Read the JSON files
+location_df = spark.read.json(HDFS_NAMENODE + "/data/location_df.json")
+accident_df = spark.read.json(HDFS_NAMENODE + "/data/accident_df.json")
+
+# Join accident_df with location_df to get city information
+accident_with_city_df = accident_df.join(location_df.select("ID", "City"), on="ID")
 
 # Filter accidents for the year 2022
-df_2022 = df.filter(year(col("Start_Time")) == 2022)
+df_2022 = accident_with_city_df.filter(year(col("Start_Time")) == 2022)
 
 # Extract day of the week and hour from Start_Time
 df_2022 = df_2022.withColumn("DayOfWeek", dayofweek(col("Start_Time"))) \
                  .withColumn("Hour", hour(col("Start_Time")))
 
-# Define window specification to partition by City, DayOfWeek, and Hour
-windowSpec = Window.partitionBy("City", "DayOfWeek", "Hour")
-
-# Use window function to calculate the average number of accidents per day and hour for each city
+# Group by city, day of the week, and hour to calculate the number of accidents
 city_day_hour_accidents = df_2022.groupBy("City", "DayOfWeek", "Hour") \
                                  .agg(count("ID").alias("Accident_Count"))
 
-# Use window function to calculate the average number of accidents per day and hour for each city
-result = city_day_hour_accidents.withColumn("AvgAccidentsPerDayHour", avg("Accident_Count").over(windowSpec))
+# Calculate the average number of accidents per day and hour for each city
+result = city_day_hour_accidents.withColumn("AvgAccidentsPerDayHour", avg("Accident_Count").over(Window.partitionBy("City", "DayOfWeek", "Hour")))
 
 # Select distinct results
 result = result.select("City", "DayOfWeek", "Hour", "AvgAccidentsPerDayHour").distinct()
@@ -63,4 +62,3 @@ result.write.format("com.mongodb.spark.sql.DefaultSource") \
     .option("database", "accidents") \
     .option("collection", "avg_accidents_per_day_hour_2022") \
     .save()
-

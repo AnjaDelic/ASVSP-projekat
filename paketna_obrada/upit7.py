@@ -1,5 +1,3 @@
-# Prikazati 15 gradova koji imaju najveći broj nezgoda po uglavnom oblačnom vremenu i kada je zabeležena vlažnost veća od prosečne. 
-
 import os
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, avg, count, desc
@@ -30,17 +28,21 @@ quiet_logs(spark)
 # Define HDFS namenode
 HDFS_NAMENODE = os.environ["CORE_CONF_fs_defaultFS"]
 
-# Read the JSON file
-df = spark.read.json(HDFS_NAMENODE + "/data/US_Accidents_March23_cleaned.json")
+# Read the JSON files
+location_df = spark.read.json(HDFS_NAMENODE + "/data/location_df.json")
+weather_df = spark.read.json(HDFS_NAMENODE + "/data/weather_df.json")
 
 # Calculate the average humidity
-average_humidity = df.select(avg("Humidity(%)").alias("Avg_Humidity")).collect()[0][0]
+average_humidity = weather_df.select(avg("Humidity(%)").alias("Avg_Humidity")).collect()[0][0]
 
 # Filter accidents that occurred in mostly cloudy weather and with humidity greater than the average
-filtered_df = df.filter(
+filtered_df = weather_df.filter(
     (col("Weather_Condition") == "Mostly Cloudy") &
     (col("Humidity(%)") > average_humidity)
 )
+
+# Join with location_df to get city information
+filtered_df = filtered_df.join(location_df, "ID")
 
 # Define window specification to count accidents per city
 windowSpec = Window.partitionBy("City")
@@ -64,4 +66,3 @@ top_15_cities.write.format("com.mongodb.spark.sql.DefaultSource") \
     .option("database", "accidents") \
     .option("collection", "top_15_cities_mostly_cloudy_high_humidity") \
     .save()
-

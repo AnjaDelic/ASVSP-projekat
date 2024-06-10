@@ -31,16 +31,20 @@ quiet_logs(spark)
 HDFS_NAMENODE = os.environ["CORE_CONF_fs_defaultFS"]
 
 # Read the JSON file
-df = spark.read.json(HDFS_NAMENODE + "/data/US_Accidents_March23_cleaned.json")
+location_df = spark.read.json(HDFS_NAMENODE + "/data/location_df.json")
+accident_df = spark.read.json(HDFS_NAMENODE + "/data/accident_df.json")
 
 # Define Window specification
 windowSpec = Window.partitionBy("State", year("Start_Time"), month("Start_Time"))
 
+# Join location_df and accident_df on ID
+joined_df = location_df.join(accident_df, "ID")
+
 # Add a column with the count of accidents per state, year, and month
-df_with_counts = df.withColumn("AccidentCount", count("ID").over(windowSpec))
+joined_df_with_counts = joined_df.withColumn("AccidentCount", count("ID").over(windowSpec))
 
 # Calculate the average number of accidents per state, year, and month
-avg_accidents_per_month_per_state = df_with_counts \
+avg_accidents_per_month_per_state = joined_df_with_counts \
     .groupBy("State", year("Start_Time").alias("Year"), month("Start_Time").alias("Month")) \
     .agg(avg("AccidentCount").alias("AvgAccidentsPerMonth")) \
     .orderBy("State", "Year", "Month")

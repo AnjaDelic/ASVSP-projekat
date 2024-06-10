@@ -27,17 +27,17 @@ services:
     depends_on: 
       - namenode
 
-  # datanode2:
-  #   image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
-  #   container_name: datanode2
-  #   volumes:
-  #     - hadoop_datanode2:/hadoop/dfs/data
-  #   environment:
-  #     SERVICE_PRECONDITION: "namenode:9870"
-  #   env_file:
-  #     - ./config/hadoop.env
-  #   depends_on: 
-  #     - namenode
+  datanode2:
+     image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+     container_name: datanode2
+     volumes:
+       - hadoop_datanode2:/hadoop/dfs/data
+     environment:
+       SERVICE_PRECONDITION: "namenode:9870"
+     env_file:
+       - ./config/hadoop.env
+     depends_on: 
+       - namenode
 
   spark-master:
     image: bde2020/spark-master:3.0.1-hadoop3.2
@@ -155,6 +155,6 @@ services:
 volumes:
   hadoop_namenode:
   hadoop_datanode1:
-  # hadoop_datanode2:
-  # hadoop_datanode3:
+  hadoop_datanode2:
+  hadoop_datanode3:
   kafka1:

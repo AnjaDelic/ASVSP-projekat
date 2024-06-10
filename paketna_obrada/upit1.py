@@ -1,9 +1,8 @@
 #!/usr/bin/python
-#U kojih 5 država su najučestalije saobraćajne nesreće, koliko puta su zabeležene u svakoj od tih država i koji je to procenat od ukupnog broja zabeleženih nesreća?
 
 import os
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col
+from pyspark.sql.functions import col, count, desc
 from pyspark.sql.types import *
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
@@ -29,21 +28,20 @@ spark = SparkSession \
 
 quiet_logs(spark)
 
-
 # Define HDFS namenode
 HDFS_NAMENODE = os.environ["CORE_CONF_fs_defaultFS"]
 
-# Read the CSV file
-df = spark.read.json(HDFS_NAMENODE + "/data/US_Accidents_March23_cleaned.json")
+# Read the JSON files
+location_df = spark.read.json(HDFS_NAMENODE + "/data/location_df.json")
 
 # Get the total number of accidents
-total_accidents = df.count()
+total_accidents = location_df.count()
 
 # Define a window specification partitioned by State
 windowSpec = Window.partitionBy("State")
 
-# Calculate the count of accidents for each state
-state_counts = df.withColumn("AccidentCount", F.count("ID").over(windowSpec))
+# Calculate the count of accidents for each state using window function
+state_counts = location_df.withColumn("AccidentCount", F.count("ID").over(windowSpec))
 
 # Get the top 5 states with the highest number of accidents
 top_states = state_counts.select("State", "AccidentCount") \

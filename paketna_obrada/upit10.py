@@ -51,7 +51,7 @@ windowSpec = Window.partitionBy("City").orderBy(desc("Weather_Count"))
 
 # Use window function to rank the weather conditions and filter to get the top 3 for each city
 ranked_weather_conditions = city_weather_counts.withColumn("Rank", row_number().over(windowSpec)) \
-                                                .filter(col("Rank") <= 3)
+                                                .filter(col("Rank") <= 3) #rank ili dens renk
 
 # Collect the weather conditions into a list for each city
 result = ranked_weather_conditions.groupBy("City") \

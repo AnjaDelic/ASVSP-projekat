@@ -4,13 +4,13 @@ import os
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col
 from pyspark.sql.types import *
+from pyspark.sql.functions import lit, regexp_replace, round
 
 # Logs
 def quiet_logs(sc):
     logger = sc._jvm.org.apache.log4j
     logger.LogManager.getLogger("org").setLevel(logger.Level.ERROR)
     logger.LogManager.getLogger("akka").setLevel(logger.Level.ERROR)
-
 
 # Create a SparkSession
 spark = SparkSession \
@@ -75,33 +75,7 @@ accident_schema = StructType([
 HDFS_NAMENODE = os.environ["CORE_CONF_fs_defaultFS"]
 
 # Read the CSV file
-df = spark.read.csv(HDFS_NAMENODE + "/data/US_Accidents_March23.csv", header=True,schema=accident_schema)
-
-""" # Check for duplicate rows
-duplicate_rows = df.groupBy(df.columns).count().filter("count > 1")
-num_duplicate_rows = duplicate_rows.count()
-print("Number of duplicate rows: ", num_duplicate_rows)
-
-# Check for duplicate columns
-duplicate_columns = []
-columns = df.columns
-for i, col1 in enumerate(columns):
-    for col2 in columns[i+1:]:
-        if df.select(col1).subtract(df.select(col2)).count() == 0 and df.select(col2).subtract(df.select(col1)).count() == 0:
-            duplicate_columns.append((col1, col2))
-
-print("Duplicate columns: ", duplicate_columns) """
-
-print("SKIPPING DUPLICATION CHECK")
-
-""" # Print the unique values for each column
-for column in df.columns:
-    unique_values = df.select(column).distinct().limit(10).collect()
-    unique_values_list = [row[column] for row in unique_values]
-    print(f"Column {column} has unique values: {unique_values_list}") """
-
-print("SKIPPING UNIQUE VALUES PRINT")
-
+df = spark.read.csv(HDFS_NAMENODE + "/data/US_Accidents_March23.csv", header=True, schema=accident_schema)
 
 # Drop rows with any NA values
 df_clean = df.dropna()
@@ -109,6 +83,46 @@ df_clean = df.dropna()
 # Show the count of remaining rows
 print("Number of rows after dropping NA values: ", df_clean.count())
 
-# Save the cleaned DataFrame as a JSON file
-df_clean.write.json(HDFS_NAMENODE + "/data/US_Accidents_March23_cleaned.json", mode="overwrite")
+# Define a UDF to convert Fahrenheit to Celsius
+def fahrenheit_to_celsius(temp_f):
+    return round((temp_f - 32) * 5.0/9.0, 2)
 
+# Register the UDF
+spark.udf.register("fahrenheit_to_celsius", fahrenheit_to_celsius)
+
+# Transformations
+location_df = df_clean.select(
+    regexp_replace("ID", "mi", "").alias("ID"), 
+    "City", "County", "State", "Country", "Zipcode", "Street",
+    (col("Distance(mi)") * lit(1.60934)).alias("Distance(km)")
+)
+
+weather_df = df_clean.select(
+    regexp_replace("ID", "mph", "").alias("ID"), 
+    "Weather_Timestamp", 
+    fahrenheit_to_celsius(col("Temperature(F)")).alias("Temperature(C)"), 
+    fahrenheit_to_celsius(col("Wind_Chill(F)")).alias("Wind_Chill(C)"), 
+    "Humidity(%)", 
+    "Pressure(in)", 
+    (col("Visibility(mi)") * lit(1.60934)).alias("Visibility(km)"), 
+    "Wind_Direction", 
+    (col("Wind_Speed(mph)") * lit(1.60934)).alias("Wind_Speed(kmh)"), 
+    "Precipitation(in)", 
+    "Weather_Condition"
+)
+
+accident_df = df_clean.select(
+    regexp_replace("ID", "mi", "").alias("ID"), 
+    "Source", "Severity", "Start_Time", "End_Time", "Start_Lat", "Start_Lng", 
+    "End_Lat", "End_Lng", 
+    (col("Distance(mi)") * lit(1.60934)).alias("Distance(km)"), 
+    "Description", "Amenity", "Bump", "Crossing", 
+    "Give_Way", "Junction", "No_Exit", "Railway", "Roundabout", "Station", "Stop", 
+    "Traffic_Calming", "Traffic_Signal", "Turning_Loop", "Sunrise_Sunset", "Civil_Twilight", 
+    "Nautical_Twilight", "Astronomical_Twilight"
+)
+
+# Save the cleaned DataFrame as a JSON file
+location_df.write.json(HDFS_NAMENODE + "/data/location_df.json", mode="overwrite")
+weather_df.write.json(HDFS_NAMENODE + "/data/weather_df.json", mode="overwrite")
+accident_df.write.json(HDFS_NAMENODE + "/data/accident_df.json", mode="overwrite")

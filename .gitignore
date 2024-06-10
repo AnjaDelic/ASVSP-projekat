@@ -3,3 +3,4 @@ metabase-data/
 mongodb/
 metabase/
 podaci/*.csv
+skripte/stvaranje_podataka/*.csv

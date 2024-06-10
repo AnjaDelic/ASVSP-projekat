@@ -1,4 +1,3 @@
-#Izlistati nezgode čija je pojava izazvala kolonu od 5 do 7 milja, u blizini ima pešački prelaz i raskrsnicu i sortirati ih prema datumu opadajuće.
 import os
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, count, desc, row_number
@@ -29,25 +28,25 @@ quiet_logs(spark)
 # Define HDFS namenode
 HDFS_NAMENODE = os.environ["CORE_CONF_fs_defaultFS"]
 
-# Read the CSV file
-df = spark.read.json(HDFS_NAMENODE + "/data/US_Accidents_March23_cleaned.json")
+# Read the JSON files
+location_df = spark.read.json(HDFS_NAMENODE + "/data/location_df.json")
+weather_df = spark.read.json(HDFS_NAMENODE + "/data/weather_df.json")
+accident_df = spark.read.json(HDFS_NAMENODE + "/data/accident_df.json")
 
+# Join accident_df with location_df to get city information
+accident_with_city_df = accident_df.join(location_df.select("ID", "City"), on="ID")
 
-# Filter accidents that occurred with a distance between 5 and 7 miles,
+# Filter accidents that occurred with a distance between 5 and 7 km,
 # near a crosswalk and intersection
-crosswalk_intersection_accidents = df.filter(
-    (col("Distance(mi)") >= 5.0) &
-    (col("Distance(mi)") <= 7.0) &
+crosswalk_intersection_accidents = accident_with_city_df.filter(
+    (col("Distance(km)") >= 5.0) &
+    (col("Distance(km)") <= 7.0) &
     (col("Crossing") == True) &
     (col("Junction") == True)
 )
 
-# Use window function to count accidents per city and order by the count
-windowSpec = Window.partitionBy("City")
-crosswalk_intersection_accidents = crosswalk_intersection_accidents.withColumn("AccidentsCount", count("ID").over(windowSpec))
-
-# Order the results by the count of accidents in descending order
-crosswalk_intersection_accidents = crosswalk_intersection_accidents.orderBy(desc("AccidentsCount"))
+# Order by descending order of Start_Time
+crosswalk_intersection_accidents = crosswalk_intersection_accidents.orderBy(desc("Start_Time"))
 
 # Show the results
 crosswalk_intersection_accidents.show()
@@ -59,5 +58,3 @@ crosswalk_intersection_accidents.write.format("com.mongodb.spark.sql.DefaultSour
     .option("database", "accidents") \
     .option("collection", "crosswalk_intersection_accidents") \
     .save()
-
-

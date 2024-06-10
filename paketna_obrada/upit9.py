@@ -1,9 +1,6 @@
-#Prikazati grad u kojem se najviše nezgoda dogodilo između 2017. i 2022. godine i koji je to udeo od ukupnog broja nezgoda, izraziti u procentima. 
-
 import os
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, count, sum, max, lit, expr
-from pyspark.sql.types import *
+from pyspark.sql.functions import col, count, lit, year
 
 # Logs
 def quiet_logs(sc):
@@ -29,12 +26,16 @@ quiet_logs(spark)
 # Define HDFS namenode
 HDFS_NAMENODE = os.environ["CORE_CONF_fs_defaultFS"]
 
-# Read the JSON file
-df = spark.read.json(HDFS_NAMENODE + "/data/US_Accidents_March23_cleaned.json")
+# Read the JSON files
+location_df = spark.read.json(HDFS_NAMENODE + "/data/location_df.json")
+accident_df = spark.read.json(HDFS_NAMENODE + "/data/accident_df.json")
+
+# Join accident_df with location_df to get city information
+accident_with_city_df = accident_df.join(location_df.select("ID", "City"), on="ID")
 
 # Filter accidents between 2017 and 2022
-df_filtered = df.filter((col("Start_Time").substr(1, 4).cast("int") >= 2017) & 
-                        (col("Start_Time").substr(1, 4).cast("int") <= 2022))
+df_filtered = accident_with_city_df.filter((year(col("Start_Time")) >= 2017) & 
+                                           (year(col("Start_Time")) <= 2022))
 
 # Group by city to count the number of accidents per city
 city_accidents = df_filtered.groupBy("City").agg(count("ID").alias("Accident_Count"))
@@ -58,5 +59,3 @@ result.write.format("com.mongodb.spark.sql.DefaultSource") \
     .option("database", "accidents") \
     .option("collection", "city_with_most_accidents_2017_2022") \
     .save()
-
-
