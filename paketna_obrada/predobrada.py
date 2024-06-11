@@ -83,6 +83,9 @@ df_clean = df.dropna()
 # Show the count of remaining rows
 print("Number of rows after dropping NA values: ", df_clean.count())
 
+#Number of rows after dropping NA values:  3554549
+
+
 # Define a UDF to convert Fahrenheit to Celsius
 def fahrenheit_to_celsius(temp_f):
     return round((temp_f - 32) * 5.0/9.0, 2)

@@ -36,8 +36,8 @@ Tipovi obeležja koji se pojavljuju u bazi su: String (16), Decimal (10),  DateT
 8. Za 2022. godinu prikazati, za svaki grad prosečan broj nezgoda po danima i satima. 
 9. Prikazati grad u kojem se najviše nezgoda dogodilo između 2017. i 2022. godine i koji je to udeo od ukupnog broja nezgoda, izraziti u procentima. 
 10. Izlistati 5 gradova u kojima je najvise zabeleženih nezgoda blizu pešačkog prelaza i znaka stop. Za svaki od 5 gradova izlistati 3 najčešćih vremenskih uslova.
-11. Za grad Čikago prikazati prosečan broj nezgoda za svaki mesec.
-12. Za grad Čikago prikazati prosečan broj prosečan broj nezgoda po danima i satima.
+11. Za grad Čikago prikazati ukupan i prosečan broj nezgoda za svaki mesec.
+12. Za grad Čikago prikazati ukupan i prosečan broj nezgoda po danima i satima.
 13. Za grad Čikago izlistati vremenske uslove i doba dana u kojima se najčešće dogadjaju nesreće.
 
 ## Skup podataka za obradu u realnom vremenu
@@ -63,12 +63,6 @@ Tipovi obeležja koji se pojavljuju u bazi su: String (20), Integer (15),  DateT
 - PHOTOS_TAKEN_I, STATEMENTS_TAKEN_I - obeležja koja se odnose na to da li je policijski službenik izvršio svoje dužnosti
 
 ### Upiti
-1. Izlistati 15 bitova u kojima je toga dana bilo najviše nezgoda, sortirati ih u opadajućem redosledu zabeleženih nezgoda i prikazati koji je to udeo od ukupnog zabeleženog broja nezgoda toga dana.
-2. U zavisnosti od glavnog uzroka nezgode, izlistati ukupan broj fatalnih i nefatalnih nezgoda sortiranih po ukupnoj šteti za taj uzrok opadajuće.
-3. Za krug 3 kilometra od centra, izlistati 3 tipa nesreća koji su se najviše puta dogodili toga dana i sortirati ih prema rastućem broju uočenih zločina. 
-4. Izlistati broj nesreća za svaki sat u tom danu. 
-5. Izlistati vremenske uslove i doba dana zabeleženih nezgoda i sortirati ih opadajuće.
-6. Izlistati nezgode koje su se desile danju a gde je krivac pobegao, šteta je preko 1500 dolara i put je bio mokar. Sortirati po broju 
 
 
 

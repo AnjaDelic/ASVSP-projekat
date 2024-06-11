@@ -4,6 +4,7 @@ docker cp /home/anja/Downloads/mongo-spark-connector_2.12:3.0.2.jar spark-master
 
 echo "Preparing data"
 #docker exec -it spark-master bash -c "/spark/bin/spark-submit --packages org.mongodb.spark:mongo-spark-connector_2.12:3.0.2 /spark/paketna_obrada/predobrada.py"
+echo "Data prepared "
 
 
 echo "Executing Spark batch queries"

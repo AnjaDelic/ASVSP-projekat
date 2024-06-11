@@ -27,31 +27,39 @@ quiet_logs(spark)
 # Define HDFS namenode
 HDFS_NAMENODE = os.environ["CORE_CONF_fs_defaultFS"]
 
-# Read the JSON file
-df = spark.read.json(HDFS_NAMENODE + "/data/US_Accidents_March23_cleaned.json")
+# Read the JSON files
+location_df = spark.read.json(HDFS_NAMENODE + "/data/location_df.json")
+accident_df = spark.read.json(HDFS_NAMENODE + "/data/accident_df.json")
 
 # Filter accidents for Chicago
-chicago_accidents = df.filter(col("City") == "Chicago")
+location_df2 = location_df.filter(col("City") == "Chicago")
+chicago_df = accident_df.join(location_df2.select("ID", "City"), on="ID")
+
 
 # Define Window specification
-windowSpec = Window.partitionBy( "City",dayofweek("Start_Time"), hour("Start_Time"))
+windowSpec = Window.partitionBy("City", dayofweek("Start_Time"), hour("Start_Time"))
 
-df_with_counts = chicago_accidents.withColumn("AccidentCount", count("ID").over(windowSpec))
+# Add a column for the count of accidents per hour
+chicago_accidents_with_counts = chicago_df.withColumn("AccidentCount", count("ID").over(windowSpec))
 
-avg_accidents_per_hour = df_with_counts \
+# Group by city, day, and hour, calculating the average accidents per hour
+avg_accidents_per_hour = chicago_accidents_with_counts \
     .groupBy("City", dayofweek("Start_Time").alias("Day"), hour("Start_Time").alias("Hour")) \
     .agg(avg("AccidentCount").alias("AvgAccidentsPerHour")) \
     .orderBy("City", "Day", "Hour")
 
+# Group by city and day, calculating the average accidents per day
 avg_accidents_per_day = avg_accidents_per_hour \
     .groupBy("City", "Day") \
     .agg(avg("AvgAccidentsPerHour").alias("AvgAccidentsPerDay"))
 
+# Join the hourly and daily averages
 final_result = avg_accidents_per_day.join(avg_accidents_per_hour, on=["City", "Day"], how="inner")
 
 final_result.show()
 
 # Save the results to MongoDB
+output_uri = "mongodb://mongodb:27017/accidents.avg_day_hour_chicago"
 final_result.write.format("com.mongodb.spark.sql.DefaultSource") \
     .mode("overwrite") \
     .option("uri", output_uri) \

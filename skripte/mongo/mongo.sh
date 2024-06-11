@@ -12,3 +12,10 @@ db.createUser(
 )
 db.getUsers()
 
+#Name: Accidents DB
+#Host: mongodb
+#Port: 27017
+#Database Name: accidents
+#Username: metabase
+#Password: metabase
+#Authentication Database Name: admin

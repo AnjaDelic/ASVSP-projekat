@@ -29,17 +29,22 @@ quiet_logs(spark)
 # Define HDFS namenode
 HDFS_NAMENODE = os.environ["CORE_CONF_fs_defaultFS"]
 
-# Read the JSON file
-df = spark.read.json(HDFS_NAMENODE + "/data/US_Accidents_March23_cleaned.json")
+
+# Read the JSON files
+location_df = spark.read.json(HDFS_NAMENODE + "/data/location_df.json")
+weather_df = spark.read.json(HDFS_NAMENODE + "/data/weather_df.json")
+accident_df = spark.read.json(HDFS_NAMENODE + "/data/accident_df.json")
 
 # Filter accidents for Chicago
-chicago_accidents = df.filter(col("City") == "Chicago")
+location_df2 = location_df.filter(col("City") == "Chicago")
+chicago_df = weather_df.join(location_df2.select("ID", "City"), on="ID")
+chicago_df_ac=chicago_df.join(accident_df.select("ID","Sunrise_Sunset"),on="ID")
 
 # Define window specifications
 windowSpec = Window.partitionBy("Weather_Condition", "Sunrise_Sunset")
 
 # Calculate accident count for each weather condition and time of day
-weather_counts = chicago_accidents.withColumn("AccidentCount", F.count("ID").over(windowSpec))
+weather_counts = chicago_df_ac.withColumn("AccidentCount", F.count("ID").over(windowSpec))
 
 # Get the top weather conditions and time of day with the highest number of accidents
 top_weather_conditions = weather_counts.select("Weather_Condition", "Sunrise_Sunset", "AccidentCount") \
