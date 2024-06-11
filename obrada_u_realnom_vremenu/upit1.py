@@ -2,33 +2,28 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import *
 from pyspark.sql.types import *
 import os
-from pyspark.sql.window import Window
-from pyspark.sql.functions import col
-from pyspark.sql.functions import count
-import pyspark.sql.functions as F
 
-# Logs
+# Function to suppress logs
 def quiet_logs(sc):
     logger = sc._jvm.org.apache.log4j
     logger.LogManager.getLogger("org").setLevel(logger.Level.ERROR)
     logger.LogManager.getLogger("akka").setLevel(logger.Level.ERROR)
 
-
-# Kreiranje SparkSession
+# Create SparkSession
 spark = SparkSession \
     .builder \
-    .appName("U1") \
-    .master('local')\
+    .appName("CrimesAnalysis") \
+    .master('local') \
     .config("spark.jars.packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.0.1") \
     .getOrCreate()
 
 quiet_logs(spark)
 
-# Definisanje šeme za podatke o saobraćajnim nezgodama
+# Define schema for crime data
 schema = StructType([
     StructField("CRASH_RECORD_ID", StringType(), True),
     StructField("CRASH_DATE_EST_I", StringType(), True),
-    StructField("CRASH_DATE", TimestampType(), True),
+    StructField("CRASH_DATE", StringType(), True),  # Temporarily as StringType for parsing
     StructField("POSTED_SPEED_LIMIT", IntegerType(), True),
     StructField("TRAFFIC_CONTROL_DEVICE", StringType(), True),
     StructField("DEVICE_CONDITION", StringType(), True),
@@ -76,47 +71,59 @@ schema = StructType([
     StructField("LOCATION", StringType(), True)
 ])
 
+# Read streaming data from Kafka
+df_crimes_raw = spark \
+    .readStream \
+    .format("kafka") \
+    .option("kafka.bootstrap.servers", "kafka1:19092") \
+    .option("subscribe", "accidents_data") \
+    .option("failOnDataLoss", "false") \
+    .load()
 
-df_accidents_raw = spark \
-  .readStream \
-  .format("kafka") \
-  .option("kafka.bootstrap.servers", "kafka1:19092") \
-  .option("subscribe", "accidents_data") \
-  .load() \
+df_crimes_raw.printSchema()
 
-df_accidents_raw.printSchema()
+# Parse JSON data and add timestamp
+df_crimes = df_crimes_raw \
+    .withColumn("parsed_value", from_json(col("value").cast("string"), schema)) \
+    .withColumn("timestamp_received", col("timestamp")) \
+    .select("parsed_value.*", "timestamp_received")
 
-# Take timestamp and parsed value from the value column
-df_accidents = df_accidents_raw \
-  .withColumn("parsed_value", from_json(col("value").cast("string"), schema)) \
-  .withColumn("timestamp_received", col("timestamp")) \
-  .select("parsed_value.*", "timestamp_received") \
+# Convert the CRASH_DATE to timestamp using the correct format
+df_crimes = df_crimes.withColumn("CRASH_DATE", to_timestamp(col("CRASH_DATE"), "MM/dd/yyyy hh:mm:ss a"))
 
-# Define HDFS namenode
+# Define HDFS Namenode
 HDFS_NAMENODE = os.environ["CORE_CONF_fs_defaultFS"]
 
-# Define the window duration and sliding interval
-window_duration = "10 minutes"
-sliding_interval = "30 seconds"
+# Define window duration and sliding interval
+window_duration = "1 minute"
+sliding_interval = "30 second"
 
-# Apply watermarking and windowing to your DataFrame
-df_accidents = df_accidents \
-    .withWatermark("timestamp_received", "10 minutes") \
-    .groupBy(window("timestamp_received", window_duration, sliding_interval),"FIRST_CRASH_TYPE") \
-    .agg(count("CRASH_RECORD_ID").alias("num_accidents"))
-  
-df_accidents_console = df_accidents \
-  .writeStream \
-  .outputMode("append") \
-  .format("console") \
-  .option("truncate", "false") \
-  .start()
+# Aggregate data to count crimes by beats in the previous 2 minutes
+df_windowed_aggregated = df_crimes \
+    .withWatermark("CRASH_DATE", "3 seconds") \
+    .groupBy(window("CRASH_DATE", window_duration, sliding_interval), "PRIM_CONTRIBUTORY_CAUSE") \
+    .agg(
+        count("CRASH_RECORD_ID").alias("accident_count")
+    ) \
+    .select("window.start", "window.end", "PRIM_CONTRIBUTORY_CAUSE", "accident_count")
 
-df_accidents_hdfs = df_accidents.writeStream \
-  .outputMode("append") \
-  .format("json") \
-  .option("path", HDFS_NAMENODE + "/data/query5") \
-  .option("checkpointLocation", HDFS_NAMENODE + "/tmp/query5_checkpoint") \
-  .start()
+# Write the aggregated data to console for testing
+df_crimes_console = df_windowed_aggregated \
+    .writeStream \
+    .outputMode("append") \
+    .format("console") \
+    .option("truncate", "false") \
+    .start()
 
-spark.streams.awaitAnyTermination()  
+# Write the aggregated data to HDFS
+df_crimes_hdfs = df_windowed_aggregated \
+    .writeStream \
+    .outputMode("append") \
+    .format("json") \
+    .option("path", HDFS_NAMENODE + "/data/upit1") \
+    .option("checkpointLocation", HDFS_NAMENODE + "/tmp/upit1_checkpoint") \
+    .start()
+
+
+# Await termination of the streams
+spark.streams.awaitAnyTermination()

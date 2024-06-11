@@ -2,29 +2,24 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import *
 from pyspark.sql.types import *
 import os
-from pyspark.sql.window import Window
-from pyspark.sql.functions import col
-from pyspark.sql.functions import count
-import pyspark.sql.functions as F
 
-# Logs
+# Function to suppress logs
 def quiet_logs(sc):
     logger = sc._jvm.org.apache.log4j
     logger.LogManager.getLogger("org").setLevel(logger.Level.ERROR)
     logger.LogManager.getLogger("akka").setLevel(logger.Level.ERROR)
 
-
-# Kreiranje SparkSession
+# Create SparkSession
 spark = SparkSession \
     .builder \
-    .appName("U1") \
-    .master('local')\
+    .appName("AccidentsAnalysis") \
+    .master('local') \
     .config("spark.jars.packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.0.1") \
     .getOrCreate()
 
 quiet_logs(spark)
 
-# Definisanje šeme za podatke o saobraćajnim nezgodama
+# Define schema for accident data
 schema = StructType([
     StructField("CRASH_RECORD_ID", StringType(), True),
     StructField("CRASH_DATE_EST_I", StringType(), True),
@@ -76,44 +71,54 @@ schema = StructType([
     StructField("LOCATION", StringType(), True)
 ])
 
-
+# Read streaming data from Kafka
 df_accidents_raw = spark \
-  .readStream \
-  .format("kafka") \
-  .option("kafka.bootstrap.servers", "kafka1:119092") \
-  .option("subscribe", "accidents_data") \
-  .load() \
+    .readStream \
+    .format("kafka") \
+    .option("kafka.bootstrap.servers", "kafka1:19092") \
+    .option("subscribe", "accidents_data") \
+    .load()
 
-df_accidents_raw.printSchema()
-
-# Take timestamp and parsed value from the value column
+# Parse JSON data and add timestamp
 df_accidents = df_accidents_raw \
-  .withColumn("parsed_value", from_json(col("value").cast("string"), schema)) \
-  .withColumn("timestamp_received", col("timestamp")) \
-  .select("parsed_value.*", "timestamp_received") \
+    .withColumn("parsed_value", from_json(col("value").cast("string"), schema)) \
+    .withColumn("timestamp_received", col("timestamp")) \
+    .select("parsed_value.*", "timestamp_received")
 
-# Define HDFS namenode
+# Define HDFS Namenode
 HDFS_NAMENODE = os.environ["CORE_CONF_fs_defaultFS"]
 
+# Define window duration and sliding interval
+window_duration = "3 seconds"
+sliding_interval = "1 second"
 
-# Calculate the number of accidents windowed every 30 seconds and sliding every 30 seconds (Rolling window)
-df_accidents = df_accidents \
-  .withWatermark("timestamp_received", "1 seconds") \
-  .groupBy(window("timestamp_received", "30 seconds", "30 seconds")) \
-  .agg(count("CRASH_RECORD_ID").alias("avg_price")) \
-  
-df_accidents_console = df_accidents \
-  .writeStream \
-  .outputMode("append") \
-  .format("console") \
-  .option("truncate", "false") \
-  .start()
+# Aggregate data to count fatal and non-fatal accidents in the previous minute
+# Aggregate data to count fatal and non-fatal accidents in the previous minute
+df_windowed_aggregated = df_accidents \
+    .withWatermark("timestamp_received", "3 seconds") \
+    .groupBy(window("timestamp_received", window_duration, sliding_interval)) \
+    .agg(
+        sum(when(col("MOST_SEVERE_INJURY") == "FATAL", 1).otherwise(0)).alias("fatal_accidents"),
+        sum(when(col("MOST_SEVERE_INJURY") != "FATAL", 1).otherwise(0)).alias("non_fatal_accidents"),
+    )
 
-df_accidents_hdfs = df_accidents.writeStream \
-  .outputMode("append") \
-  .format("json") \
-  .option("path", HDFS_NAMENODE + "/data/query5") \
-  .option("checkpointLocation", HDFS_NAMENODE + "/tmp/query5_checkpoint") \
-  .start()
 
-spark.streams.awaitAnyTermination()  
+# Write the aggregated data to console for testing
+df_accidents_console = df_windowed_aggregated \
+    .writeStream \
+    .outputMode("append") \
+    .format("console") \
+    .option("truncate", "false") \
+    .start()
+
+# Write the aggregated data to HDFS
+df_accidents_hdfs = df_windowed_aggregated \
+    .writeStream \
+    .outputMode("append") \
+    .format("json") \
+    .option("path", HDFS_NAMENODE + "/data/upit2") \
+    .option("checkpointLocation", HDFS_NAMENODE + "/tmp/upit2_checkpoint") \
+    .start()
+
+# Await termination of the streams
+spark.streams.awaitAnyTermination()

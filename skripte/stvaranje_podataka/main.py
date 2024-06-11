@@ -14,20 +14,6 @@ TOPIC = "accidents_data"
 # Load the CSV file into pandas dataframe
 df = pd.read_csv("chicago_crashes.csv")
 
-# Modifying dates to current time
-current_time = datetime.now()
-
-# Update CRASH_DATE, DATE_POLICE_NOTIFIED
-df['CRASH_DATE'] = current_time.strftime('%m/%d/%Y %I:%M:%S %p')
-df['DATE_POLICE_NOTIFIED'] = current_time.strftime('%m/%d/%Y %I:%M:%S %p')
-
-# Update CRASH_DAY_OF_WEEK, CRASH_MONTH
-df['CRASH_DAY_OF_WEEK'] = current_time.strftime('%w')  # 0 (Sunday) - 6 (Saturday)
-df['CRASH_MONTH'] = current_time.strftime('%m')
-
-# Update CRASH_HOUR
-df['CRASH_HOUR'] = current_time.strftime('%H')
-
 # Initial delay to ensure Kafka is ready
 # time.sleep(5)
 
@@ -36,6 +22,14 @@ while True:
         # Connect to Kafka
         producer = KafkaProducer(bootstrap_servers=KAFKA_BROKER)
         for index, row in df.iterrows():
+            # Modifying dates to current time for each message
+            current_time = datetime.now()
+            row['CRASH_DATE'] = current_time.strftime('%m/%d/%Y %I:%M:%S %p')
+            row['DATE_POLICE_NOTIFIED'] = current_time.strftime('%m/%d/%Y %I:%M:%S %p')
+            row['CRASH_DAY_OF_WEEK'] = current_time.strftime('%w')  # 0 (Sunday) - 6 (Saturday)
+            row['CRASH_MONTH'] = current_time.strftime('%m')
+            row['CRASH_HOUR'] = current_time.strftime('%H')
+
             print("Sending message to Kafka")
             # Send the message
             producer.send(TOPIC, value=row.to_json().encode())

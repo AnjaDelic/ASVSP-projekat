@@ -95,12 +95,15 @@ df_accidents = df_accidents_raw \
 # Define HDFS namenode
 HDFS_NAMENODE = os.environ["CORE_CONF_fs_defaultFS"]
 
+# Define the window duration and sliding interval
+window_duration = "10 minutes"
+sliding_interval = "30 seconds"
 
-# Calculate the number of accidents windowed every 30 seconds and sliding every 30 seconds (Rolling window)
+# Apply watermarking and windowing to your DataFrame
 df_accidents = df_accidents \
-  .withWatermark("timestamp_received", "1 seconds") \
-  .groupBy(window("timestamp_received", "30 seconds", "30 seconds")) \
-  .agg(count("CRASH_RECORD_ID").alias("avg_price")) \
+    .withWatermark("timestamp_received", "10 minutes") \
+    .groupBy(window("timestamp_received", window_duration, sliding_interval),"FIRST_CRASH_TYPE") \
+    .agg(count("CRASH_RECORD_ID").alias("num_accidents"))
   
 df_accidents_console = df_accidents \
   .writeStream \
