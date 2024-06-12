@@ -96,7 +96,7 @@ location_df = spark.read.json(HDFS_NAMENODE + "/data/location_df.json")
 location_df2 = location_df.filter(col("City") == "Chicago")
 # Count the number of accidents
 num_accidents = location_df2.count()
-print("Total number of accidents:", num_accidents)
+#print("Total number of accidents:", num_accidents)
 
 # Convert the CRASH_DATE to timestamp using the correct format
 df_accidents = df_accidents.withColumn("CRASH_DATE", to_timestamp(col("CRASH_DATE"), "MM/dd/yyyy hh:mm:ss a"))
