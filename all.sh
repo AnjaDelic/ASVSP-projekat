@@ -1,7 +1,7 @@
 #!/bin/bash
 
 echo "Batch processing starting "
-batch.sh
+./batch.sh
 
-echo "Streaming processing starting
-stream.sh
+echo "Streaming processing starting"
+./stream.sh
