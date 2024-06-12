@@ -93,6 +93,15 @@ window_duration = "3 seconds"
 sliding_interval = "1 second"
 
 # Aggregate data to count fatal and non-fatal accidents in the previous minute
+def write_to_hdfs(batch_df, batch_id):
+    if batch_df.count() > 0:
+        batch_df.show(truncate=False)  # Print the batch to the console
+        batch_df \
+            .write \
+            .format("json") \
+            .mode("append") \
+            .save(HDFS_NAMENODE + f"/data/upit2/batch_{batch_id}")
+
 # Aggregate data to count fatal and non-fatal accidents in the previous minute
 df_windowed_aggregated = df_accidents \
     .withWatermark("timestamp_received", "3 seconds") \
@@ -102,23 +111,12 @@ df_windowed_aggregated = df_accidents \
         sum(when(col("MOST_SEVERE_INJURY") != "FATAL", 1).otherwise(0)).alias("non_fatal_accidents"),
     )
 
-
-# Write the aggregated data to console for testing
+# Write the aggregated data to console for testing and to HDFS
 df_accidents_console = df_windowed_aggregated \
     .writeStream \
     .outputMode("append") \
-    .format("console") \
-    .option("truncate", "false") \
-    .start()
-
-# Write the aggregated data to HDFS
-df_accidents_hdfs = df_windowed_aggregated \
-    .writeStream \
-    .outputMode("append") \
-    .format("json") \
-    .option("path", HDFS_NAMENODE + "/data/upit2") \
-    .option("checkpointLocation", HDFS_NAMENODE + "/tmp/upit2_checkpoint") \
+    .foreachBatch(write_to_hdfs) \
     .start()
 
 # Await termination of the streams
-spark.streams.awaitAnyTermination()
+df_accidents_console.awaitTermination()

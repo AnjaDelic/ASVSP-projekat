@@ -1,34 +1,30 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import *
 from pyspark.sql.types import *
-import os
 from pyspark.sql.window import Window
-from pyspark.sql.functions import col
-from pyspark.sql.functions import count
-import pyspark.sql.functions as F
+import os
 
-# Logs
+# Initialize Spark session
+spark = SparkSession \
+    .builder \
+    .appName("AccidentsComparison") \
+    .master('local') \
+    .config("spark.jars.packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.0.1") \
+    .getOrCreate()
+
+# Function to reduce log verbosity
 def quiet_logs(sc):
     logger = sc._jvm.org.apache.log4j
     logger.LogManager.getLogger("org").setLevel(logger.Level.ERROR)
     logger.LogManager.getLogger("akka").setLevel(logger.Level.ERROR)
 
-
-# Kreiranje SparkSession
-spark = SparkSession \
-    .builder \
-    .appName("U1") \
-    .master('local')\
-    .config("spark.jars.packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.0.1") \
-    .getOrCreate()
-
 quiet_logs(spark)
 
-# Definisanje šeme za podatke o saobraćajnim nezgodama
+# Schema for accidents data
 schema = StructType([
     StructField("CRASH_RECORD_ID", StringType(), True),
     StructField("CRASH_DATE_EST_I", StringType(), True),
-    StructField("CRASH_DATE", TimestampType(), True),
+    StructField("CRASH_DATE", StringType(), True),
     StructField("POSTED_SPEED_LIMIT", IntegerType(), True),
     StructField("TRAFFIC_CONTROL_DEVICE", StringType(), True),
     StructField("DEVICE_CONDITION", StringType(), True),
@@ -76,44 +72,70 @@ schema = StructType([
     StructField("LOCATION", StringType(), True)
 ])
 
-
+# Read streaming data from Kafka
 df_accidents_raw = spark \
-  .readStream \
-  .format("kafka") \
-  .option("kafka.bootstrap.servers", "kafka1:119092") \
-  .option("subscribe", "accidents_data") \
-  .load() \
+    .readStream \
+    .format("kafka") \
+    .option("kafka.bootstrap.servers", "kafka1:19092") \
+    .option("subscribe", "accidents_data") \
+    .load()
 
-df_accidents_raw.printSchema()
-
-# Take timestamp and parsed value from the value column
+# Parse JSON data and add timestamp
 df_accidents = df_accidents_raw \
-  .withColumn("parsed_value", from_json(col("value").cast("string"), schema)) \
-  .withColumn("timestamp_received", col("timestamp")) \
-  .select("parsed_value.*", "timestamp_received") \
+    .withColumn("parsed_value", from_json(col("value").cast("string"), schema)) \
+    .withColumn("timestamp_received", col("timestamp")) \
+    .select("parsed_value.*", "timestamp_received")
 
-# Define HDFS namenode
+# Define HDFS Namenode
 HDFS_NAMENODE = os.environ["CORE_CONF_fs_defaultFS"]
 
 
-# Calculate the number of accidents windowed every 30 seconds and sliding every 30 seconds (Rolling window)
-df_accidents = df_accidents \
-  .withWatermark("timestamp_received", "1 seconds") \
-  .groupBy(window("timestamp_received", "30 seconds", "30 seconds")) \
-  .agg(count("CRASH_RECORD_ID").alias("avg_price")) \
-  
-df_accidents_console = df_accidents \
-  .writeStream \
-  .outputMode("append") \
-  .format("console") \
-  .option("truncate", "false") \
-  .start()
+# Read the JSON files
+location_df = spark.read.json(HDFS_NAMENODE + "/data/location_df.json")
 
-df_accidents_hdfs = df_accidents.writeStream \
-  .outputMode("append") \
-  .format("json") \
-  .option("path", HDFS_NAMENODE + "/data/query5") \
-  .option("checkpointLocation", HDFS_NAMENODE + "/tmp/query5_checkpoint") \
-  .start()
+location_df2 = location_df.filter(col("City") == "Chicago")
+# Count the number of accidents
+num_accidents = location_df2.count()
+print("Total number of accidents:", num_accidents)
 
-spark.streams.awaitAnyTermination()  
+# Convert the CRASH_DATE to timestamp using the correct format
+df_accidents = df_accidents.withColumn("CRASH_DATE", to_timestamp(col("CRASH_DATE"), "MM/dd/yyyy hh:mm:ss a"))
+
+# Define window duration and sliding interval
+window_duration = "5 minutes"  # Analyze data in 5-minute windows
+sliding_interval = "1 minute"  # Slide the window every 1 minute
+
+# Calculate the number of accidents in the last 5 minutes
+window_duration = "5 minutes"
+sliding_interval = "1 minute"
+df_recent_accidents = df_accidents \
+    .withWatermark("CRASH_DATE", "5 minutes") \
+    .groupBy(window("CRASH_DATE", window_duration, sliding_interval)) \
+    .agg(count("*").alias("recent_accidents"))
+
+# Calculate the percentage of recent accidents compared to total accidents
+df_percentage_recent_accidents = df_recent_accidents \
+    .withColumn("percentage", (col("recent_accidents") / num_accidents) * 100) \
+    .select("window.start", "window.end","percentage")
+
+# Define a function to write each batch to HDFS and print to console
+def write_to_hdfs(batch_df, batch_id):
+    if batch_df.count() > 0:
+        batch_df.show(truncate=False)  # Print the batch to the console
+        batch_df \
+            .write \
+            .format("json") \
+            .mode("append") \
+            .save(HDFS_NAMENODE + f"/data/upit4/batch_{batch_id}")
+
+# Write the aggregated data to HDFS using foreachBatch
+df_percentage_recent_accidents \
+    .writeStream \
+    .outputMode("append") \
+    .foreachBatch(write_to_hdfs) \
+    .option("checkpointLocation", HDFS_NAMENODE + "/tmp/upit4_checkpoint") \
+    .start()
+
+
+# Await termination of the streams
+spark.streams.awaitAnyTermination()
