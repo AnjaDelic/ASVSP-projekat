@@ -11,3 +11,8 @@ for ((i=1; i<=5; i++)); do
 done
 
 echo "Spark streaming queries executed"
+
+#echo "Spark streaming saving"
+#docker exec -it spark-master bash -c "/spark/bin/spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.0.1 /spark/obrada_u_realnom_vremenu/save.py"
+#echo "Everything finished"
+

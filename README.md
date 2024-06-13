@@ -63,7 +63,11 @@ Tipovi obeležja koji se pojavljuju u bazi su: String (20), Integer (15),  DateT
 - PHOTOS_TAKEN_I, STATEMENTS_TAKEN_I - obeležja koja se odnose na to da li je policijski službenik izvršio svoje dužnosti
 
 ### Upiti
-
+1. U zavisnosti od glavnog uzroka nesreće prikazati broj nesreća u prethodnih 5min, s pomeranjem prozora od 1min.
+2. Prikazati broj fatalnih i nefatalnih nesreća u prethodne 3sekunde, s prozorom pomeranja od 1 sekund.
+3. Ispisati da li su uočene nesreće u prethodnih 5min iznad ili ispod proseka. 
+4. Prikazati koliki % od ukupnog broja uočenih nesreća se dogodilo u prethodnih 5 min.
+5. Prikazati najučestaliji vremenski uslov istorijski, kao i vremenske uslove i broj nesreća po istima u prethodnih 15min.
 
 
 
