@@ -30,7 +30,7 @@ Tipovi obeležja koji se pojavljuju u bazi su: String (16), Decimal (10),  DateT
 2. Za svaku državu izlistati prosečan broj nezgoda za svaku godinu i za svaki mesec u toj godini.
 3. Prikazati državu sa najviše nezgoda koje su imale značajan uticaj na okolinu, a desile su se tokom dana i kada je brzina vetra bila veća od prosečne. 
 4. Izlistati nezgode koje su se dogodile u blizini saobraćajnih znakova, imale su uticaj stepena 2 na saobraćaj i desile su se tokom noći i slabe vidljivosti.
-5. Izlistati nezgode čija je pojava izazvala kolonu od 5 do 7 milja, u blizini ima pešački prelaz i raskrsnicu i sortirati ih prema datumu opadajuće.
+5. Izlistati nezgode čija je pojava izazvala kolonu od 5 do 7 kilometara, u blizini ima pešački prelaz i raskrsnicu i sortirati ih prema datumu opadajuće.
 6. Izlistati gradove u kojima je zabeležen broj nezgoda manji od prosečnog broja zabeleženih nesreća i u njima izračunati prosečnu temperaturu u stepenima celzijusa. 
 7. Prikazati 15 gradova koji imaju najveći broj nezgoda po uglavnom oblačnom vremenu i kada je zabeležena vlažnost veća od prosečne. 
 8. Za 2022. godinu prikazati, za svaki grad prosečan broj nezgoda po danima i satima. 
