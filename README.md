@@ -1,4 +1,4 @@
-# ASVSP
+# ASVSP (english version below)
 Ovaj repozitorijum napravljen je s ciljem implementacije projekta iz predmeta Arhitektura sistema velikih skupova podataka, Fakultet tehnickih nauka, Novi Sad.
 
 ## Analiza saobraćajnih nesreća
@@ -69,6 +69,77 @@ Tipovi obeležja koji se pojavljuju u bazi su: String (20), Integer (15),  DateT
 4. Prikazati koliki % od ukupnog broja uočenih nesreća se dogodilo u prethodnih 5 min.
 5. Prikazati najučestaliji vremenski uslov istorijski, kao i vremenske uslove i broj nesreća po istima u prethodnih 15min.
 
+
+# ASVSP
+This repository was created with the aim of implementing a project for the course on Large Data Set System Architecture, Faculty of Technical Sciences, Novi Sad.
+
+## Traffic Accident Analysis
+
+Police departments across the USA possess multiple systems that inform them about the situation in their cities.  
+The basic idea is to provide the Chicago police with a single system that combines historical data and real-time processing to present a comprehensive picture of traffic accidents across the USA and, subsequently, in their city. This will enable them to allocate resources adequately and respond more efficiently.  
+For batch processing, a dataset on traffic accidents in the USA was selected from the link: [US Accidents Dataset](https://www.kaggle.com/datasets/sobhanmoosavi/us-accidents/data).  
+For real-time processing, a dataset on traffic accidents in Chicago was selected: [Chicago Traffic Crashes Dataset](https://data.cityofchicago.org/Transportation/Traffic-Crashes-Crashes/85ca-t3if).
+
+## Dataset for Batch Processing
+Contains historical data on traffic accidents in the USA from February 2016 to March 2023. 
+- **Dataset Size:** 3GB
+- **Number of Columns:** 46
+- **Number of Rows:** 3,000,000
+
+### Features
+Given that there are 46 features, only the most important will be listed.  
+The types of features that appear in the database are: String (16), Decimal (10), DateTime (2), Boolean (13), and Other (5). 
+
+- **ID** - identification feature  
+- **SEVERITY** - severity, impact, accident, a number from 1 to 4 (most severe)  
+- **STATE, CITY, COUNTY, STREET, ZIPCODE, ...** - features that describe the accident address  
+- **CRASH_DATE, CRASH_HOUR, TIMEZONE, ...** - features that describe the date and time of the accident  
+- **WEATHER_CONDITION, TEMPERATURE (F), VISIBILITY (MI), SUNRISE_SUNSET, ...** - features related to the weather conditions at the time of the accident  
+- **BUMP, CROSSING, JUNCTION, NO_EXIT, ROUNDABOUT, ...** - features related to the accident environment  
+
+### Queries
+1. In which 5 states are traffic accidents most frequent, how many times were they recorded in each of those states, and what percentage does that represent of the total number of recorded accidents?
+2. For each state, list the average number of accidents for each year and for each month in that year.
+3. Display the state with the most accidents that had a significant impact on the environment, occurred during the day, and when wind speed was above average.  
+4. List accidents that occurred near traffic signs, had a severity impact of 2 on traffic, and happened at night in low visibility.  
+5. List accidents that caused a traffic jam of 5 to 7 kilometers, nearby there is a pedestrian crossing and an intersection, and sort them by date in descending order.  
+6. List cities with recorded numbers of accidents and add a column that determines whether that number is below, above, or equal to the average number of recorded accidents. Additionally, calculate the average temperature in degrees Celsius for each city.  
+7. Display the 15 cities with the highest number of accidents during mostly cloudy weather and when humidity was above average.  
+8. For the year 2022, show the average number of accidents per day.  
+9. Show the city with the highest number of accidents that occurred between 2017 and 2022 and what percentage that represents of the total number of accidents.  
+10. List 5 cities where the highest number of accidents were recorded near a pedestrian crossing and a stop sign. For each of the 5 cities, list the 3 most common weather conditions.  
+11. For Chicago, display the total and average number of accidents for each month.  
+12. For Chicago, display the total and average number of accidents by day and hour.  
+13. For Chicago, list the weather conditions and times of day in which accidents most frequently occur.
+
+## Dataset for Real-Time Processing
+Contains historical data on traffic accidents in Chicago from February 2015. 
+- **Dataset Size:** 430MB
+- **Number of Columns:** 48
+- **Number of Rows:** 784,000
+
+### Features
+Given that there are 48 features, only the most important will be listed.  
+The types of features that appear in the database are: String (20), Integer (15), DateTime (2), Boolean (9), and Other (2). 
+- **CRASH_RECORD_ID** - identification feature  
+- **LONGITUDE, LATITUDE, LOCATION, STREET_NAME, ...** - features that describe the accident address  
+- **CRASH_DATE, CRASH_HOUR, ...** - features that describe the date of the accident  
+- **WEATHER_CONDITION, LIGHTING_CONDITION, ...** - features related to the weather conditions at the time of the accident  
+- **ROADWAY_SURFACE_COND, ROAD_DEFECT, WORK_ZONE_I, WORKERS_PRESENT_I, ...** - features related to the accident environment  
+- **MOST_SEVERE_INJURY, INJURIES_TOTAL, INJURIES_FATAL, INJURIES_UNKNOWN, ...** - features related to the number of injuries sustained in the accident  
+- **DAMAGE** - estimated damage  
+- **CRASH_TYPE** - type of accident, which can be injury / requiring towing due to a collision or without injuries / able to drive away  
+- **PRIM_CONTRIBUTORY_CAUSE, SEC_CONTRIBUTORY_CAUSE** - features related to the causes of the accident  
+- **INTERSECTION_RELATED_I, HIT_AND_RUN_I, DOORING_I, ...** - details of the accident  
+- **BEAT_OF_OCCURRENCE** - beat, area of the city designated for 1 police patrol, where the accident occurred  
+- **PHOTOS_TAKEN_I, STATEMENTS_TAKEN_I** - features related to whether the police officer performed their duties  
+
+### Queries
+1. Depending on the main cause of the accident, display the number of accidents in the previous 5 minutes, with a sliding window of 1 minute.
+2. Display the number of fatal and non-fatal accidents in the previous 3 seconds, with a sliding window of 1 second.
+3. Output whether the observed accidents in the previous 5 minutes are above or below average. 
+4. Show what percentage of the total observed accidents occurred in the previous 5 minutes.
+5. Display the most common weather condition historically, as well as the weather conditions and the number of accidents for those conditions in the previous 15 minutes.
 
 
 
