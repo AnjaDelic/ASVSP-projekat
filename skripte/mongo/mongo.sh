@@ -1,3 +1,5 @@
+echo "Skripta je pokrenuta"
+
 docker exec -it mongodb bash
 mongosh
 use accidents
